@@ -3,6 +3,8 @@ import sys
 
 names = {
     #This is a dictionary containing names of countries
+    #Conatins dummy names for now
+    #TODO: Add actual country names
     'B' : ['Ba', 'Bb', 'Bc', '\0'],
     'A' : ['Aa', 'Ab', 'Ac', '\0'],
     'C' : ['Ca', 'Cb', 'Cc', '\0']
