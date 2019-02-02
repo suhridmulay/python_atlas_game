@@ -3,8 +3,7 @@ import sys
 
 names = {
     #This is a dictionary containing names of countries
-    #Conatins dummy names for now
-    #TODO: Add actual country names
+    #Todo: Add actual Country names for once
     'B' : ['Ba', 'Bb', 'Bc', '\0'],
     'A' : ['Aa', 'Ab', 'Ac', '\0'],
     'C' : ['Ca', 'Cb', 'Cc', '\0']
@@ -23,13 +22,17 @@ def reply(end_letter:str):
     op_list = names[end_letter]
     pntr = ord(end_letter) - 65
     count = counter[pntr]
-    repl =  op_list[count]
+    repl = op_list[count]
+    while repl in user_used:
+        counter[pntr] += 1
+        count = counter[pntr]
+        repl = op_list[count]
     if repl == '\0':
         print('You win human....')
         sys.exit(0)
     else:
-        counter[pntr] = counter[pntr] + 1
-        return repl
+        counter[pntr] += 1
+    return repl
 
 #This method checks whether the country user enters exists in list or not
 #If it does not exist the user automatically loses
@@ -82,9 +85,9 @@ while True:
     if country_in in user_used:
         print('User loses due to repetition')
         sys.exit(0)
-
+    user_used.append(country_in)
+    
     #This is the actual reply part which only answers if all above checks are fulfilled
     r = reply(country_in[len(country_in) - 1].upper())
-    user_used.append(country_in)
     print(r)
     
