@@ -1,93 +1,111 @@
-#Importing sys for exit
-import sys
+from functools import reduce
+from os import path
+import random
+from typing import List
 
-names = {
-    #This is a dictionary containing names of countries
-    #Todo: Add actual Country names for once
-    'B' : ['Ba', 'Bb', 'Bc', '\0'],
-    'A' : ['Aa', 'Ab', 'Ac', '\0'],
-    'C' : ['Ca', 'Cb', 'Cc', '\0']
-}
+# Loads data from given country file
+def load_data():
+    def trim_and_lcase_string(s: str): 
+        return s.strip().lower();
 
-#This counts which numbered country of a particular letter we are using
-#For instance counter[0] = 1 implies 2nd country in the 'A' list
-counter = [0] * 3
-
-#This is a list for user strings max length hundred
-user_used = []
-
-#This function provides the user with a reply from the computer
-#Exits if it loses
-def reply(end_letter:str):
-    op_list = names[end_letter]
-    pntr = ord(end_letter) - 65
-    count = counter[pntr]
-    repl = op_list[count]
-    while repl in user_used:
-        counter[pntr] += 1
-        count = counter[pntr]
-        repl = op_list[count]
-    if repl == '\0':
-        print('You win human....')
-        sys.exit(0)
-    else:
-        counter[pntr] += 1
-    return repl
-
-#This method checks whether the country user enters exists in list or not
-#If it does not exist the user automatically loses
-def country_exists(country_name:str):
-    letter = country_name[0].upper()
-    countries = names[letter]
-    if country_name.capitalize() in countries:
-        return 1
-    else:
-        print("User loses because of invalid input (non-existent country)")
-        sys.exit()
-
-#This method checks whether the computer has already used the country name
-def is_not_used(country_name:str):
-    countries = names[country_name[0].upper()]
-    index = countries.index(country_name)
-    ptr = ord(country_name[0]) - 65
-    if index >= counter[ptr]:
-        return 1
-    else:
-        print("User loses due to repetition")
-        sys.exit()
-
-
-
-
-print('Welcome to the game: ')
-r = '\0'
-while True:
-    country_in = input('Please enter a country name (or Q to quit): ')
-    #This is the exit part. Called when you quit the game
-    if country_in == 'Q':
-        print("You noob You quit !")
-        sys.exit(0)
+    country_file_path = path.join('.', 'assets', 'countries.txt')
+    country_list: List[str] = []
+    with open(country_file_path) as country_file:
+        country_list = list(
+            map(
+                trim_and_lcase_string, 
+                country_file.read().split('\n')
+            )
+        )
     
-    #These are some implemented checks
-    #this checks whether country exists
-    country_exists(country_in)
+    def country_list_to_dict_reducer(accumulator: dict[str, list[str]], country: str):
+        dictionary = accumulator
+        letter = country[0]
+        if (letter in dictionary.keys()): dictionary[letter].append(country)
+        else: dictionary[letter] = [country]
+        return dictionary
 
-    #This checks whether the last letter of computer's answer and first letter of users input match
-    if r != '\0':
-        if r[len(r) - 1].upper() != country_in[0].upper():
-            print("User loses due to letter mismatch")
-            sys.exit(0)
+    country_dict = reduce(
+        country_list_to_dict_reducer,
+        country_list,
+        {}
+    )
 
-    #This checks whether the computer has not already used the country name
-    is_not_used(country_in)
+    return country_list, country_dict
 
-    #These lines check whether the user has used the country
-    if country_in in user_used:
-        print('User loses due to repetition')
-        sys.exit(0)
-    user_used.append(country_in)
+def choose_response(to: str, from_list: dict[str, list[str]], used_list: set[str]):
+    last_letter = to[-1]
+    # If there are no countries starting with required last letter
+    # Player has won, we cannot respond
+    if (last_letter not in from_list.keys()): return ''
+
+    def country_name_is_valid(country_name: str, used_set: set[str]): return country_name not in used_set
+    countries_ending_with_last_letter = from_list[last_letter]
+    valid_reposnses = list(
+        filter(
+            lambda country: country_name_is_valid(country, used_list),
+            countries_ending_with_last_letter
+        )
+    )
     
-    #This is the actual reply part which only answers if all above checks are fulfilled
-    r = reply(country_in[len(country_in) - 1].upper())
-    print(r)
-    
+    # If there are no valid responses to the users answer return an empty string
+    if (len(valid_reposnses) == 0): return ''
+    # If there are return a random one
+    else: return random.choice(valid_reposnses)
+
+def main():
+    country_list, country_dict = load_data()
+    used_countries = set()
+    WINNER = ''
+    REASON = ''
+    # Begin game loop
+    while True:
+        user_input = input('enter a country name (or q to lose by default): ').lower()
+
+        # When user chooses to quit by default
+        if (user_input == 'q'):
+            print(f"User chose to default")
+            WINNER = 'computer'
+            REASON = 'user defaulted'
+            break
+        
+        # When country user mentions has already been used 
+        if (user_input in used_countries): 
+            print(f"Country {user_input} has already been mentioned, you cannot mention it again")
+            WINNER = 'COMPUTER'
+            REASON = 'User forgot country already used'
+            break
+
+        # When country used by user is fictional or not present in computer data
+        if (user_input not in country_list):
+            print(f"Country {user_input} not found in list of countries, does it exist?")
+            WINNER = 'computer'
+            REASON = 'User made up a country'
+            break;
+
+        # If all checks pass
+        # Add user mentioned country to the list of used countries
+        used_countries.add(user_input)
+        # Ask computer to come up with a response
+        computer_response = choose_response(user_input, country_dict, used_countries)
+
+        # When the computer response is blank
+        if computer_response == '':
+            print(f"Ok human, you win this time")
+            WINNER = 'HUMAN'
+            REASON = 'Computer knowledge exhausted'
+            break;
+
+        # Continue game as usual
+        print(f"Computer responds with: {computer_response}")
+        used_countries.add(computer_response)
+
+    print(f"Well played USER and COMPUTER")
+    print(f"The winner is {WINNER}")
+    print(f"And the reason for their victory: {REASON}")
+
+        
+
+
+if __name__ == '__main__':
+    main()
