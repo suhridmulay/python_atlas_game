@@ -9,3 +9,6 @@ This project has a full implementation of the game for the two players nothing m
 
 # What remains to be done
 A full list of actual country names are yet to be put in as a list and used and the code is to be changed suitably
+
+# Credits
+Using the list of countries obtained from https://gist.github.com/kalinchernev/486393efcca01623b18d
